@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".GameOverActivity">
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/img_game_over_brg"
+        android:scaleType="fitXY"/>
+    <RelativeLayout
+        android:layout_above="@id/iconImg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:layout_centerHorizontal="true"
+            android:layout_width="300dp"
+            android:layout_height="100dp"
+            android:src="@drawable/img_point_brg"/>
+        <TextView
+            android:id="@+id/pointTv"
+            android:layout_centerInParent="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="50sp"
+            android:textColor="#FFFFFF"
+            android:text="1.000"/>
+    </RelativeLayout>
+    <ImageView
+        android:id="@+id/iconImg"
+        android:layout_centerInParent="true"
+        android:layout_width="300dp"
+        android:layout_height="150dp"
+        android:src="@drawable/img_game_over_icon"/>
+    <ImageView
+        android:layout_below="@id/iconImg"
+        android:id="@+id/playAgainImg"
+        android:layout_centerInParent="true"
+        android:layout_width="200dp"
+        android:layout_height="100dp"
+        android:src="@drawable/img_play_again"/>
+
+    
+
+
+</RelativeLayout>
