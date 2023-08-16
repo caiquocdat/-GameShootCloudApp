@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewTreeObserver;
+import android.view.animation.AccelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
@@ -298,7 +299,8 @@ public class MainActivity extends AppCompatActivity {
                 animator = ValueAnimator.ofFloat(0, 1);
                 movingImage.setTag(animator);
                 cloudAnimators.add(animator);
-                animator.setDuration(20000);
+                animator.setDuration(7000);
+                animator.setInterpolator(new AccelerateInterpolator(2.0f));
                 animator.addUpdateListener(animation -> {
                     float value = (float) animation.getAnimatedValue();
                     movingImage.setTranslationY(activityMainBinding.gameLayout.getHeight() * value);
@@ -325,7 +327,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        handler.postDelayed(this::createAndAnimateImage, 1000);
+        handler.postDelayed(this::createAndAnimateImage, 300);
     }
 
     private boolean isAnyCloudLeft() {
