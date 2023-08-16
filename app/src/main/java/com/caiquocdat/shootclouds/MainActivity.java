@@ -4,9 +4,13 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.animation.ValueAnimator;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.drawable.Drawable;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
+import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
@@ -28,7 +32,12 @@ public class MainActivity extends AppCompatActivity {
     private int pendingExplosions = 0;
     private List<ValueAnimator> cloudAnimators = new ArrayList<>();
     private CountDownTimer countDownTimer;
-    private int countPoint=0;
+    private int countPoint = 0;
+    private static final String PREFS_NAME = "app_prefs";
+    private static final String STATE_KEY = "turn_state";
+    private MediaPlayer mediaPlayer;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,7 +47,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(view);
         hideSystemUI();
         createAndAnimateImage();
-        startCountdown();
+        startCountdown(60000);
+
         activityMainBinding.gameLayout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -49,23 +59,71 @@ public class MainActivity extends AppCompatActivity {
         activityMainBinding.rankImg.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent  =new Intent(MainActivity.this,RankActivity.class);
+//                isGameOver = true;
+//                animator.cancel();
+//                handler.removeCallbacksAndMessages(null);  // Ngăn chặn việc tạo thêm img_cloud
+//                clearAllClouds();
+                Intent intent = new Intent(MainActivity.this, RankActivity.class);
                 startActivity(intent);
+                stopMusic();
+//                if (countDownTimer != null) {
+//                    countDownTimer.cancel();
+//                }
             }
         });
         activityMainBinding.settingImg.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent  =new Intent(MainActivity.this,SettingActivity.class);
+                isGameOver = true;
+                animator.cancel();
+                handler.removeCallbacksAndMessages(null);  // Ngăn chặn việc tạo thêm img_cloud
+                clearAllClouds();
+                Intent intent = new Intent(MainActivity.this, SettingActivity.class);
                 startActivity(intent);
+                stopMusic();
+                if (countDownTimer != null) {
+                    countDownTimer.cancel();
+                }
             }
         });
 
 
     }
 
-    private void startCountdown() {
-        countDownTimer = new CountDownTimer(30000, 1000) { // Đếm ngược từ 10 giây, mỗi tick 1 giây
+    private void checkMusic() {
+        boolean isOn = getState();
+        if (isOn) {
+            playMusic();
+        } else {
+            stopMusic();
+        }
+    }
+
+    private void playMusic() {
+        if (mediaPlayer == null) {
+            mediaPlayer = MediaPlayer.create(this, R.raw.musicgame);
+        }
+        if (!mediaPlayer.isPlaying()) {
+            mediaPlayer.start();
+        }
+    }
+
+    private void stopMusic() {
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+            mediaPlayer.stop();
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
+    }
+
+
+    private boolean getState() {
+        SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        return sharedPreferences.getBoolean(STATE_KEY, false); // Giá trị mặc định là false (off)
+    }
+
+    private void startCountdown(long millisUntilFinished) {
+        countDownTimer = new CountDownTimer(millisUntilFinished, 1000) { // Đếm ngược từ 10 giây, mỗi tick 1 giây
             @Override
             public void onTick(long millisUntilFinished) {
                 activityMainBinding.timeTv.setText((millisUntilFinished / 1000) + "s");
@@ -81,8 +139,9 @@ public class MainActivity extends AppCompatActivity {
                 handler.removeCallbacksAndMessages(null);  // Ngăn chặn việc tạo thêm img_cloud
                 clearAllClouds();
                 Intent intent = new Intent(MainActivity.this, GameOverActivity.class);
-                intent.putExtra("point",countPoint);
+                intent.putExtra("point", countPoint);
                 startActivity(intent);
+                stopMusic();
 
             }
         }.start();
@@ -90,13 +149,37 @@ public class MainActivity extends AppCompatActivity {
 
     private void shootBullet() {
         final ImageView bullet = new ImageView(this);
-        bullet.setImageResource(R.drawable.img_bullet_1);
+        int bullet_1 = R.drawable.img_monkey;
+        int bullet_2 = R.drawable.img_pineapple;
+        int bullet_3 = R.drawable.img_bee;
+        int bullet_4 = R.drawable.img_shit;
+        int value_icon;
+        Intent intent = getIntent();
+        int get_Value = intent.getIntExtra("icon", 1);
+        if (get_Value == 2) {
+            value_icon = bullet_2;
+        } else if (get_Value == 3) {
+            value_icon = bullet_3;
+        } else if (get_Value == 4) {
+            value_icon = bullet_4;
+        } else {
+            value_icon = bullet_1;
+        }
+        bullet.setImageResource(value_icon);
+
+        // Chỉnh sửa kích thước của viên đạn
+        int bulletSizeInPixels = (int) TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                100,  // Kích thước bạn muốn (ví dụ ở đây là 100dp)
+                getResources().getDisplayMetrics());
+
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.WRAP_CONTENT,
-                RelativeLayout.LayoutParams.WRAP_CONTENT);
+                bulletSizeInPixels,
+                bulletSizeInPixels);
         params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
         params.addRule(RelativeLayout.CENTER_HORIZONTAL);
         bullet.setLayoutParams(params);
+
         activityMainBinding.gameLayout.addView(bullet);
         bullet.setTranslationY(0);  // Đặt vị trí ban đầu ở dưới cùng của màn hình
 
@@ -108,12 +191,12 @@ public class MainActivity extends AppCompatActivity {
             bullet.setTranslationY(value);
 
             // Kiểm tra va chạm tại đây
-            checkCollision(bullet,bulletAnimator);
+            checkCollision(bullet, bulletAnimator);
         });
         bulletAnimator.start();
     }
 
-    private void checkCollision(ImageView bullet,ValueAnimator bulletAnimator) {
+    private void checkCollision(ImageView bullet, ValueAnimator bulletAnimator) {
         for (int i = 0; i < activityMainBinding.gameLayout.getChildCount(); i++) {
             View child = activityMainBinding.gameLayout.getChildAt(i);
             if (child instanceof ImageView && ((ImageView) child).getDrawable().getConstantState() == getResources().getDrawable(R.drawable.img_cloud_new).getConstantState()) {
@@ -131,6 +214,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
     private void applySpringEffect() {
         // Lò xo dãn hết mức
         activityMainBinding.imgSpring.setImageResource(R.drawable.img_spring_default);
@@ -180,15 +264,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
-
-
-
     private void hideSystemUI() {
         View decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        |View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
 //                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
 //                        | View.SYSTEM_UI_FLAG_FULLSCREEN
@@ -224,7 +304,7 @@ public class MainActivity extends AppCompatActivity {
                     movingImage.setTranslationY(activityMainBinding.gameLayout.getHeight() * value);
 
                     if (movingImage.getTranslationY() > activityMainBinding.gameLayout.getHeight() - movingImage.getHeight() && pendingExplosions == 0) {
-                        if(!isGameOver) {
+                        if (!isGameOver) {
                             isGameOver = true;
                             Toast.makeText(MainActivity.this, "Bạn đã thua", Toast.LENGTH_SHORT).show();
                             animator.cancel();
@@ -234,8 +314,9 @@ public class MainActivity extends AppCompatActivity {
                                 countDownTimer.cancel();
                             }
                             Intent intent = new Intent(MainActivity.this, GameOverActivity.class);
-                            intent.putExtra("point",countPoint);
+                            intent.putExtra("point", countPoint);
                             startActivity(intent);
+                            stopMusic();
                         }
                     }
                 });
@@ -246,6 +327,7 @@ public class MainActivity extends AppCompatActivity {
 
         handler.postDelayed(this::createAndAnimateImage, 1000);
     }
+
     private boolean isAnyCloudLeft() {
         for (int i = 0; i < activityMainBinding.gameLayout.getChildCount(); i++) {
             View child = activityMainBinding.gameLayout.getChildAt(i);
@@ -276,6 +358,10 @@ public class MainActivity extends AppCompatActivity {
         if (countDownTimer != null) {
             countDownTimer.cancel();
         }
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
         handler.removeCallbacksAndMessages(null);
     }
 
@@ -283,8 +369,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         hideSystemUI();
-
+        checkMusic();
     }
+
+
+
+
     @Override
     public void onBackPressed() {
 
